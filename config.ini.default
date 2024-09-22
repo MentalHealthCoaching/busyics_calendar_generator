@@ -1,9 +1,9 @@
 [DEFAULT]
-# Directory where the freebusy.ics file will be saved
+# Directory where the busy.ics file will be saved
 output_dir = /path/to/output/directory
 
-# Filename for the freebusy.ics file
-output_filename = freebusy.ics
+# Filename for the busy.ics file
+output_filename = busy.ics
 
 # Start and end hours from now (integers)
 starthours = 0
