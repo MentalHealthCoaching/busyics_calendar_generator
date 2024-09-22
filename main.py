@@ -91,7 +91,7 @@ def main():
 
     # Get general settings
     output_dir = config['DEFAULT'].get('output_dir', '.')
-    output_filename = config['DEFAULT'].get('output_filename', 'freebusy.ics')
+    output_filename = config['DEFAULT'].get('output_filename', 'busy.ics')
     output_file = os.path.join(output_dir, output_filename)
     starthours = int(config['DEFAULT'].get('starthours', '0'))
     endhours = int(config['DEFAULT'].get('endhours', '1440'))  # default to 2 months
@@ -119,7 +119,7 @@ def main():
 
     # Initialize a new calendar
     busy_calendar = Calendar()
-    busy_calendar.add('prodid', '-//FreeBusy Calendar//mxm.dk//')
+    busy_calendar.add('prodid', '-//Busy Calendar//mxm.dk//')
     busy_calendar.add('version', '2.0')
 
     # Loop over resources
@@ -186,7 +186,7 @@ def main():
     try:
         with open(output_file, 'wb') as f:
             f.write(busy_calendar.to_ical())
-        logging.info(f"FreeBusy ICS file generated at {output_file}")
+        logging.info(f"Busy ICS file generated at {output_file}")
     except Exception as e:
         logging.critical(f"Failed to write ICS file: {e}")
         sys.exit(1)
