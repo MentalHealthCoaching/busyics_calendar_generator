@@ -7,7 +7,8 @@ output_filename = busy.ics
 
 # Start and end hours from now (integers)
 starthours = 0
-endhours = 1440  # Default is 2 months (approx.)
+endhours = 1440  
+# Default is 2 months (approx.)
 
 # Summary text to use for busy events
 summary_text = Busy
