@@ -1,0 +1,68 @@
+[DEFAULT]
+# Directory where the freebusy.ics file will be saved
+output_dir = /path/to/output/directory
+
+# Filename for the freebusy.ics file
+output_filename = freebusy.ics
+
+# Start and end hours from now (integers)
+starthours = 0
+endhours = 1440  # Default is 2 months (approx.)
+
+# Summary text to use for busy events
+summary_text = Busy
+
+# Upload method: '', 'ftp', 'sftp', or 'scp'
+upload_method = 
+
+# Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+log_level = WARNING
+
+# Define your iCal resources below. Each resource should have a unique section.
+# Copy the template below for each resource and fill in the details.
+
+;[RESOURCE1]
+;url = https://example.com/caldav/
+;username = your_username
+;password = your_password
+
+;[RESOURCE2]
+;url = https://example.com/caldav/
+;username = your_username
+;password = your_password
+
+# FTP upload settings
+;[FTP]
+;ftp_host = ftp.example.com
+;ftp_port = 21
+;ftp_username = your_ftp_username
+;ftp_password = your_ftp_password
+;remote_path = /path/on/server/
+
+# SFTP/SCP upload settings
+;[SFTP]
+;sftp_host = sftp.example.com
+;sftp_port = 22
+;sftp_username = your_sftp_username
+
+# For password authentication:
+;sftp_password = your_sftp_password
+
+# For key authentication:
+;sftp_private_key = /path/to/private/key
+;sftp_private_key_pass = private_key_passphrase  ; if your key has a passphrase
+
+;remote_path = /path/on/server/
+
+# Instructions on setting up a Python virtual environment
+;[VIRTUALENV]
+; To set up a Python virtual environment for this script, follow these steps:
+; 1. Install virtualenv if you haven't already:
+;    python3 -m pip install virtualenv
+; 2. Create a virtual environment:
+;    python3 -m virtualenv venv
+; 3. Activate the virtual environment:
+;    source venv/bin/activate
+; 4. Install the required packages:
+;    pip install caldav icalendar pytz paramiko
+; 5. Run the script within the virtual environment.
