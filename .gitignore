@@ -1,13 +1,13 @@
-config.ini
-config.ini~
+*~
+config.ini*
+!config.ini.default
+.gitignore
+.gitignore~
 temp
 data
-.gitignore~
-*~
 # Ignoriere alle .log-Dateien
 *.log
 .DS_Store
 venv
-Antragsformular-ambPsychotherapie.docx
 *.pdf
 *.json
