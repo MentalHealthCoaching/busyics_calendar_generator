@@ -8,6 +8,7 @@ import sys
 import os
 import logging
 import urllib.parse
+import uuid
 
 try:
     import caldav
@@ -16,7 +17,7 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from icalendar import Calendar, Event
+    from icalendar import Calendar, Event, vDatetime, Timezone, TimezoneStandard, TimezoneDaylight
 except ImportError:
     print("Please install the icalendar module using 'pip install icalendar'")
     sys.exit(1)
@@ -31,6 +32,32 @@ try:
     import paramiko
 except ImportError:
     print("Warning: paramiko module not found. SFTP/SCP upload will not be available.")
+
+
+# Define the Europe/Berlin VTIMEZONE
+def get_berlin_timezone():
+    tz = Timezone()
+    tz.add('tzid', 'Europe/Berlin')
+
+    # Standard time (CET)
+    standard = TimezoneStandard()
+    standard.add('tzname', 'CET')
+    standard.add('dtstart', datetime.datetime(1970, 10, 25, 3, 0, 0))
+    standard.add('tzoffsetfrom', timedelta(hours=2))
+    standard.add('tzoffsetto', timedelta(hours=1))
+    standard.add('rrule', {'freq': 'yearly', 'bymonth': 10, 'byday': '-1su'})
+    tz.add_component(standard)
+
+    # Daylight saving time (CEST)
+    daylight = TimezoneDaylight()
+    daylight.add('tzname', 'CEST')
+    daylight.add('dtstart', datetime.datetime(1970, 3, 29, 2, 0, 0))
+    daylight.add('tzoffsetfrom', timedelta(hours=1))
+    daylight.add('tzoffsetto', timedelta(hours=2))
+    daylight.add('rrule', {'freq': 'yearly', 'bymonth': 3, 'byday': '-1su'})
+    tz.add_component(daylight)
+
+    return tz
 
 
 def upload_via_ftp(config, local_file, filename):
@@ -91,7 +118,7 @@ def main():
 
     # Get general settings
     output_dir = config['DEFAULT'].get('output_dir', '.')
-    output_filename = config['DEFAULT'].get('output_filename', 'busy.ics')
+    output_filename = config['DEFAULT'].get('output_filename', 'freebusy.ics')
     output_file = os.path.join(output_dir, output_filename)
     starthours = int(config['DEFAULT'].get('starthours', '0'))
     endhours = int(config['DEFAULT'].get('endhours', '1440'))  # default to 2 months
@@ -113,14 +140,17 @@ def main():
     logging.debug(f"Start hours: {starthours}, End hours: {endhours}")
 
     # Calculate the time range
-    timezone = pytz.utc
+    timezone = pytz.timezone('Europe/Berlin')
     start_time = datetime.datetime.now(timezone) + timedelta(hours=starthours)
     end_time = datetime.datetime.now(timezone) + timedelta(hours=endhours)
 
     # Initialize a new calendar
     busy_calendar = Calendar()
-    busy_calendar.add('prodid', '-//Busy Calendar//mxm.dk//')
+    busy_calendar.add('prodid', '-//BusyICS Calendar Generator//mxm.dk//')
     busy_calendar.add('version', '2.0')
+
+    # Add the Europe/Berlin timezone to the calendar
+    busy_calendar.add_component(get_berlin_timezone())
 
     # Loop over resources
     for section in config.sections():
@@ -129,6 +159,8 @@ def main():
             url = resource_config.get('url')
             username = resource_config.get('username')
             password = resource_config.get('password')
+            calendar_name = resource_config.get('calendar_name', None)
+            calendar_url = resource_config.get('calendar_url', None)
 
             if not url or not username or not password:
                 logging.error(f"Missing information in section {section}")
@@ -146,35 +178,62 @@ def main():
                 logging.info(f"Connected to {url} successfully.")
 
                 # List available calendars
+                logging.info("Available calendars:")
                 for calendar in calendars:
                     cal_name = calendar.name
                     cal_url = calendar.url
-                    logging.info(f"Available calendar: {cal_name} - {cal_url}")
+                    logging.info(f"Calendar: {cal_name} - URL: {cal_url}")
 
-                for calendar in calendars:
-                    # Get events in the time range
-                    results = calendar.date_search(start=start_time, end=end_time)
+                # Select the specified calendar
+                target_calendar = None
+                if calendar_name:
+                    for calendar in calendars:
+                        if calendar.name == calendar_name:
+                            target_calendar = calendar
+                            break
+                    if not target_calendar:
+                        logging.error(f"Calendar named '{calendar_name}' not found in {url}")
+                        continue
+                elif calendar_url:
+                    for calendar in calendars:
+                        if calendar.url == calendar_url:
+                            target_calendar = calendar
+                            break
+                    if not target_calendar:
+                        logging.error(f"Calendar with URL '{calendar_url}' not found in {url}")
+                        continue
+                else:
+                    logging.error(f"No calendar_name or calendar_url specified in section {section}")
+                    continue
 
-                    for event in results:
-                        try:
-                            ical = Calendar.from_ical(event.data)
-                            for component in ical.walk():
-                                if component.name == "VEVENT":
-                                    event_start = component.get('dtstart').dt
-                                    event_end = component.get('dtend').dt
-                                    event_status = component.get('transp', 'OPAQUE')
+                logging.info(f"Using calendar: {target_calendar.name} - {target_calendar.url}")
 
-                                    # Check if event is busy
-                                    if event_status == 'OPAQUE':
-                                        # Create a new event with minimal information
-                                        busy_event = Event()
-                                        busy_event.add('dtstart', event_start)
-                                        busy_event.add('dtend', event_end)
-                                        busy_event.add('summary', summary_text)
-                                        busy_calendar.add_component(busy_event)
-                        except Exception as e:
-                            logging.error(f"Error processing event: {e}")
-                logging.debug(f"Finished processing calendars for {url}")
+                # Get events in the time range
+                results = target_calendar.date_search(start=start_time, end=end_time)
+
+                for event in results:
+                    try:
+                        ical = Calendar.from_ical(event.data)
+                        for component in ical.walk():
+                            if component.name == "VEVENT":
+                                event_start = component.get('dtstart').dt
+                                event_end = component.get('dtend').dt
+                                event_status = component.get('transp', 'OPAQUE')
+
+                                # Check if event is busy
+                                if event_status == 'OPAQUE':
+                                    # Create a new event with minimal information
+                                    busy_event = Event()
+                                    busy_event.add('dtstart', vDatetime(event_start).to_ical())
+                                    busy_event.add('dtend', vDatetime(event_end).to_ical())
+                                    busy_event.add('summary', summary_text)
+                                    busy_event.add('uid', str(uuid.uuid4()))  # Unique identifier for each event
+                                    busy_event.add('dtstamp', vDatetime(datetime.datetime.now()).to_ical())  # Timestamp of the event creation
+                                    busy_event.add('tzid', 'Europe/Berlin')
+                                    busy_calendar.add_component(busy_event)
+                    except Exception as e:
+                        logging.error(f"Error processing event: {e}")
+                logging.debug(f"Finished processing calendar '{target_calendar.name}' for {url}")
             except Exception as e:
                 logging.error(f"Error connecting to {url}: {e}")
                 continue
@@ -186,7 +245,7 @@ def main():
     try:
         with open(output_file, 'wb') as f:
             f.write(busy_calendar.to_ical())
-        logging.info(f"Busy ICS file generated at {output_file}")
+        logging.info(f"FreeBusy ICS file generated at {output_file}")
     except Exception as e:
         logging.critical(f"Failed to write ICS file: {e}")
         sys.exit(1)

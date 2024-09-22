@@ -1,14 +1,13 @@
 [DEFAULT]
-# Directory where the busy.ics file will be saved
+# Directory where the freebusy.ics file will be saved
 output_dir = /path/to/output/directory
 
-# Filename for the busy.ics file
-output_filename = busy.ics
+# Filename for the freebusy.ics file
+output_filename = freebusy.ics
 
 # Start and end hours from now (integers)
 starthours = 0
-endhours = 1440  
-# Default is 2 months (approx.)
+endhours = 1440  # Default is 2 months (approx.)
 
 # Summary text to use for busy events
 summary_text = Busy
@@ -27,10 +26,15 @@ log_level = WARNING
 ;username = your_username
 ;password = your_password
 
+; Specify either calendar_name or calendar_url to select a specific calendar
+;calendar_name = Your Calendar Name
+;calendar_url = https://example.com/caldav/your_calendar_url
+
 ;[RESOURCE2]
 ;url = https://example.com/caldav/
 ;username = your_username
 ;password = your_password
+;calendar_name = Another Calendar Name
 
 # FTP upload settings
 ;[FTP]
