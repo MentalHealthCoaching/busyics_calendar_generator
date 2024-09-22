@@ -11,3 +11,4 @@ data
 venv
 *.pdf
 *.json
+*.ics
