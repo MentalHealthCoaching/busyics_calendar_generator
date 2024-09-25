@@ -213,6 +213,7 @@ def main():
 
                 for event in results:
                     try:
+                        logging.info(f"Raw event data: {event.data}") 
                         ical = Calendar.from_ical(event.data)
                         for component in ical.walk():
                             if component.name == "VEVENT":
