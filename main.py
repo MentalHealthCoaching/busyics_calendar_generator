@@ -220,16 +220,23 @@ def main():
                                 event_end = component.get('dtend').dt
                                 event_status = component.get('transp', 'OPAQUE')
 
+                                # Ensure event_start and event_end are datetime objects
+                                if isinstance(event_start, datetime.date) and not isinstance(event_start, datetime.datetime):
+                                    event_start = datetime.datetime.combine(event_start, datetime.time.min, tzinfo=timezone)
+                                if isinstance(event_end, datetime.date) and not isinstance(event_end, datetime.datetime):
+                                    event_end = datetime.datetime.combine(event_end, datetime.time.min, tzinfo=timezone)
+
                                 # Check if event is busy
                                 if event_status == 'OPAQUE':
                                     # Create a new event with minimal information
                                     busy_event = Event()
-                                    busy_event.add('dtstart', vDatetime(event_start).to_ical())
-                                    busy_event.add('dtend', vDatetime(event_end).to_ical())
+                                    # Add 'TZID' as a parameter if needed
+                                    parameters = {'TZID': 'Europe/Berlin'}
+                                    busy_event.add('dtstart', event_start, parameters=parameters)
+                                    busy_event.add('dtend', event_end, parameters=parameters)
                                     busy_event.add('summary', summary_text)
                                     busy_event.add('uid', str(uuid.uuid4()))  # Unique identifier for each event
-                                    busy_event.add('dtstamp', vDatetime(datetime.datetime.now()).to_ical())  # Timestamp of the event creation
-                                    busy_event.add('tzid', 'Europe/Berlin')
+                                    busy_event.add('dtstamp', datetime.datetime.now(timezone))
                                     busy_calendar.add_component(busy_event)
                     except Exception as e:
                         logging.error(f"Error processing event: {e}")
